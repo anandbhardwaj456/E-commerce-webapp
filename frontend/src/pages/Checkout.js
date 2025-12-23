@@ -12,7 +12,6 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('cod');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -40,7 +39,7 @@ const Checkout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!selectedAddress) {
       toast.error('Please select a delivery address');
       return;
@@ -66,7 +65,7 @@ const Checkout = () => {
       const orderData = {
         orderItems,
         shippingAddress: address,
-        paymentMethod,
+        paymentMethod: 'cod',
         itemsPrice: subtotal,
         taxPrice: tax,
         shippingPrice: shipping,
@@ -75,59 +74,9 @@ const Checkout = () => {
 
       const res = await api.post('/orders', orderData);
 
-      if (paymentMethod === 'cod') {
-        toast.success('Order placed successfully!');
-        clearCart();
-        navigate(`/orders/${res.data._id}`);
-      } else {
-        // Integrate Razorpay for card/upi payments
-        try {
-          const paymentRes = await api.post('/payment/create-order', {
-            amount: total,
-            orderId: res.data._id,
-          });
-
-          const options = {
-            key: paymentRes.data.key,
-            amount: paymentRes.data.amount,
-            currency: paymentRes.data.currency,
-            name: 'E-Commerce Store',
-            description: `Order #${res.data._id.slice(-8)}`,
-            order_id: paymentRes.data.id,
-            handler: async function (response) {
-              try {
-                await api.post('/payment/verify', {
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                  orderId: res.data._id,
-                });
-                toast.success('Payment successful!');
-                clearCart();
-                navigate(`/orders/${res.data._id}`);
-              } catch (error) {
-                toast.error('Payment verification failed');
-              }
-            },
-            prefill: {
-              name: user.name,
-              email: user.email,
-              contact: user.phone || '',
-            },
-            theme: {
-              color: '#0ea5e9',
-            },
-          };
-
-          const razorpay = new window.Razorpay(options);
-          razorpay.on('payment.failed', function (response) {
-            toast.error('Payment failed. Please try again.');
-          });
-          razorpay.open();
-        } catch (error) {
-          toast.error('Failed to initialize payment');
-        }
-      }
+      toast.success('Order placed successfully!');
+      clearCart();
+      navigate(`/orders/${res.data._id}`);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to place order');
     } finally {
@@ -219,48 +168,20 @@ const Checkout = () => {
               </h2>
 
               <div className="space-y-3">
-                <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer border-gray-200 hover:border-primary-300">
+                <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer border-gray-200">
                   <input
                     type="radio"
                     name="paymentMethod"
                     value="cod"
-                    checked={paymentMethod === 'cod'}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    checked={true}
+                    readOnly
                     className="mr-3"
                   />
                   <div>
                     <p className="font-semibold">Cash on Delivery</p>
-                    <p className="text-sm text-gray-600">Pay when you receive</p>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer border-gray-200 hover:border-primary-300">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="card"
-                    checked={paymentMethod === 'card'}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="mr-3"
-                  />
-                  <div>
-                    <p className="font-semibold">Credit/Debit Card</p>
-                    <p className="text-sm text-gray-600">Pay securely with card</p>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer border-gray-200 hover:border-primary-300">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="upi"
-                    checked={paymentMethod === 'upi'}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="mr-3"
-                  />
-                  <div>
-                    <p className="font-semibold">UPI</p>
-                    <p className="text-sm text-gray-600">Pay with UPI</p>
+                    <p className="text-sm text-gray-600">
+                      Only Cash on Delivery is available right now.
+                    </p>
                   </div>
                 </label>
               </div>

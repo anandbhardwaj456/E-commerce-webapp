@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import { toast } from 'react-toastify';
 import { FiPlus, FiEdit, FiTrash2 } from 'react-icons/fi';
 
 const Addresses = () => {
-  const { user, updateUser } = useAuth();
   const [addresses, setAddresses] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);

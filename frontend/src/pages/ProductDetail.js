@@ -17,11 +17,6 @@ const ProductDetail = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const { addToCart } = useCart();
 
-  useEffect(() => {
-    fetchProduct();
-    fetchReviews();
-  }, [id]);
-
   const fetchProduct = async () => {
     try {
       const res = await api.get(`/products/${id}`);
@@ -42,6 +37,11 @@ const ProductDetail = () => {
       console.error('Error fetching reviews:', error);
     }
   };
+
+  useEffect(() => {
+    fetchProduct();
+    fetchReviews();
+  }, [id]);
 
   const handleQuantityChange = (change) => {
     const newQuantity = quantity + change;

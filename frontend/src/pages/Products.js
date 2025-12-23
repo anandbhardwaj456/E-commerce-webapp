@@ -20,14 +20,6 @@ const Products = () => {
   const [totalPages, setTotalPages] = useState(1);
   const { addToCart } = useCart();
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [filters, page]);
-
   const fetchCategories = async () => {
     try {
       const res = await api.get('/products/categories/list');
@@ -55,6 +47,14 @@ const Products = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [filters, page]);
 
   const handleFilterChange = (e) => {
     setFilters({

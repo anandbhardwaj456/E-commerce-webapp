@@ -8,10 +8,6 @@ const OrderDetail = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchOrder();
-  }, [id]);
-
   const fetchOrder = async () => {
     try {
       const res = await api.get(`/orders/${id}`);
@@ -22,6 +18,10 @@ const OrderDetail = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchOrder();
+  }, [id]);
 
   const getStatusIcon = (status) => {
     switch (status) {

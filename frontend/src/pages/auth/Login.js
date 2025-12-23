@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
-import { FiMail, FiLock } from 'react-icons/fi';
+import { FiMail } from 'react-icons/fi';
 
 const Login = () => {
   const [formData, setFormData] = useState({

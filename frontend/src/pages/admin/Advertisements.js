@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { toast } from 'react-toastify';
-import { FiPlus, FiEdit, FiTrash2, FiImage } from 'react-icons/fi';
+import { FiPlus, FiEdit, FiTrash2 } from 'react-icons/fi';
 
 const AdminAdvertisements = () => {
   const [advertisements, setAdvertisements] = useState([]);

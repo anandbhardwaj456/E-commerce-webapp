@@ -10,7 +10,7 @@ const PhoneLogin = () => {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { loginWithToken } = useAuth();
   const navigate = useNavigate();
 
   const handleSendOTP = async (e) => {

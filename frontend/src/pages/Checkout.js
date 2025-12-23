@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { toast } from 'react-toastify';
 import { FiCreditCard, FiMapPin } from 'react-icons/fi';
 
 const Checkout = () => {
   const { cartItems, getCartTotal, clearCart } = useCart();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
@@ -20,7 +18,7 @@ const Checkout = () => {
       return;
     }
     fetchAddresses();
-  }, []);
+  }, [cartItems.length, navigate]);
 
   const fetchAddresses = async () => {
     try {

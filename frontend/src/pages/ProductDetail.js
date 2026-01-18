@@ -87,7 +87,11 @@ const ProductDetail = () => {
         <div>
           <div className="mb-4">
             <img
-              src={`http://localhost:5000${product.images[selectedImage]}`}
+              src={(() => {
+                const src = product.images[selectedImage] || '';
+                if (src.startsWith('http') || src.startsWith('data:')) return src;
+                return `http://localhost:5000${src}`;
+              })()}
               alt={product.name}
               className="w-full h-96 object-cover rounded-lg"
             />
@@ -105,7 +109,7 @@ const ProductDetail = () => {
                   }`}
                 >
                   <img
-                    src={`http://localhost:5000${image}`}
+                    src={image.startsWith('http') || image.startsWith('data:') ? image : `http://localhost:5000${image}`}
                     alt={`${product.name} ${index + 1}`}
                     className="w-full h-20 object-cover"
                   />

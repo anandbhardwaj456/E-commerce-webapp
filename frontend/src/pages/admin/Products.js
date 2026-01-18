@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { toast } from 'react-toastify';
-import { FiPlus, FiEdit, FiTrash2, FiImage } from 'react-icons/fi';
+import { FiPlus, FiEdit, FiTrash2, FiImage, FiX } from 'react-icons/fi';
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
@@ -17,7 +17,37 @@ const AdminProducts = () => {
     stock: '',
     images: [],
   });
-  const [imageFiles, setImageFiles] = useState([]);
+  const [imageUrlsText, setImageUrlsText] = useState('');
+  const [newImageUrl, setNewImageUrl] = useState('');
+
+  const addImageUrlFromInput = () => {
+    const trimmed = newImageUrl.trim();
+    const isData = trimmed.startsWith('data:');
+    let isHttp = false;
+    try {
+      const u = new URL(trimmed);
+      isHttp = u.protocol === 'http:' || u.protocol === 'https:';
+    } catch (e) {
+      isHttp = false;
+    }
+    if (!trimmed || (!isHttp && !isData)) {
+      toast.error('Please enter a valid http(s) or data URL.');
+      return;
+    }
+    setFormData((prev) => ({ ...prev, images: [...(prev.images || []), trimmed] }));
+    setNewImageUrl('');
+  };
+
+  const removeImageAt = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: (prev.images || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const clearImages = () => {
+    setFormData((prev) => ({ ...prev, images: [] }));
+  };
 
   useEffect(() => {
     fetchProducts();
@@ -42,34 +72,30 @@ const AdminProducts = () => {
     });
   };
 
-  const handleImageChange = (e) => {
-    setImageFiles(Array.from(e.target.files));
+  const handleImagesTextChange = (e) => {
+    setImageUrlsText(e.target.value);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const formDataToSend = new FormData();
-
-    Object.keys(formData).forEach((key) => {
-      if (key !== 'images') {
-        formDataToSend.append(key, formData[key]);
-      }
-    });
-
-    imageFiles.forEach((file) => {
-      formDataToSend.append('images', file);
-    });
+    // Use images from button list and merge any textarea entries
+    const extraFromText = imageUrlsText
+      .split('\n')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    const images = [...(formData.images || []), ...extraFromText];
+    if (images.length === 0) {
+      toast.error('Please add at least one image URL.');
+      return;
+    }
+    const payload = { ...formData, images };
 
     try {
       if (editingProduct) {
-        await api.put(`/admin/products/${editingProduct}`, formDataToSend, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await api.put(`/admin/products/${editingProduct}`, payload);
         toast.success('Product updated successfully');
       } else {
-        await api.post('/admin/products', formDataToSend, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await api.post('/admin/products', payload);
         toast.success('Product created successfully');
       }
       fetchProducts();
@@ -90,6 +116,8 @@ const AdminProducts = () => {
       stock: product.stock,
       images: product.images,
     });
+    setImageUrlsText('');
+    setNewImageUrl('');
     setShowForm(true);
   };
 
@@ -115,7 +143,8 @@ const AdminProducts = () => {
       stock: '',
       images: [],
     });
-    setImageFiles([]);
+    setImageUrlsText('');
+    setNewImageUrl('');
     setEditingProduct(null);
     setShowForm(false);
   };
@@ -225,25 +254,65 @@ const AdminProducts = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Images
               </label>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleImageChange}
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="text"
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                />
+                <button
+                  type="button"
+                  onClick={addImageUrlFromInput}
+                  className="px-3 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+                >
+                  Add Image URL
+                </button>
+                {(formData.images || []).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearImages}
+                    className="px-3 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+              {(formData.images || []).length > 0 ? (
+                <ul className="mt-2 flex gap-2 flex-wrap">
+                  {formData.images.map((img, idx) => (
+                    <li key={`${img}-${idx}`} className="flex items-center gap-2">
+                      <img
+                        src={img.startsWith('http') || img.startsWith('data:') ? img : `http://localhost:5000${img}`}
+                        alt={`Product ${idx + 1}`}
+                        className="w-16 h-16 object-cover rounded"
+                      />
+                      <span className="text-xs text-gray-600 break-all max-w-xs">{img}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeImageAt(idx)}
+                        className="p-1 text-gray-500 hover:text-red-600"
+                        aria-label="Remove"
+                      >
+                        <FiX />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-gray-500">No images added yet.</p>
+              )}
+              <label className="block text-xs font-medium text-gray-500 mt-3 mb-1">
+                Optional: paste URLs (one per line)
+              </label>
+              <textarea
+                value={imageUrlsText}
+                onChange={handleImagesTextChange}
+                rows="3"
+                placeholder="https://example.com/image1.jpg\nhttps://example.com/image2.png"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
               />
-              {editingProduct && formData.images.length > 0 && (
-                <div className="mt-2 flex gap-2 flex-wrap">
-                  {formData.images.map((img, idx) => (
-                    <img
-                      key={idx}
-                      src={`http://localhost:5000${img}`}
-                      alt={`Product ${idx + 1}`}
-                      className="w-20 h-20 object-cover rounded"
-                    />
-                  ))}
-                </div>
-              )}
             </div>
             <div className="flex space-x-4">
               <button
@@ -293,8 +362,12 @@ const AdminProducts = () => {
               <tr key={product._id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {product.images.length > 0 ? (
-                    <img
-                      src={`http://localhost:5000${product.images[0]}`}
+                        <img
+                      src={(() => {
+                        const src = product.images[0] || '';
+                        if (src.startsWith('http') || src.startsWith('data:')) return src;
+                        return `http://localhost:5000${src}`;
+                      })()}
                       alt={product.name}
                       className="w-16 h-16 object-cover rounded"
                     />

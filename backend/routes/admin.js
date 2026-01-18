@@ -3,44 +3,15 @@ import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import User from '../models/User.js';
 import { protect, admin } from '../middleware/auth.js';
-import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fetch from 'node-fetch';
 
 const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Multer configuration for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../uploads/'));
-  },
-  filename: (req, file, cb) => {
-    cb(
-      null,
-      `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`
-    );
-  },
-});
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|gif|webp/;
-    const extname = filetypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-    const mimetype = filetypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'));
-    }
-  },
-});
+// Note: Local file uploads removed. Products now accept external image URLs.
 
 // All admin routes require authentication and admin role
 router.use(protect);
@@ -49,17 +20,48 @@ router.use(admin);
 // ==================== PRODUCT MANAGEMENT ====================
 
 // @route   POST /api/admin/products
-// @desc    Create new product
+// @desc    Create new product (images provided as array of URLs)
 // @access  Private/Admin
-router.post('/products', upload.array('images', 5), async (req, res) => {
+router.post('/products', async (req, res) => {
   try {
-    const imagePaths = req.files
-      ? req.files.map((file) => `/uploads/${file.filename}`)
-      : [];
+    // Accept images as array of URLs in body
+    let images = [];
+    if (Array.isArray(req.body.images)) {
+      images = req.body.images;
+    } else if (typeof req.body.images === 'string' && req.body.images.length) {
+      try {
+        const parsed = JSON.parse(req.body.images);
+        if (Array.isArray(parsed)) images = parsed;
+      } catch {
+        images = [req.body.images];
+      }
+    }
+
+    // Convert URL images to data URLs and store in DB
+    const toDataUrl = async (urlOrData) => {
+      if (typeof urlOrData !== 'string') return '';
+      if (urlOrData.startsWith('data:')) return urlOrData;
+      if (/^https?:\/\//i.test(urlOrData)) {
+        try {
+          const response = await fetch(urlOrData);
+          if (!response.ok) throw new Error('Failed to fetch image');
+          const contentType = response.headers.get('content-type') || 'image/jpeg';
+          const buffer = Buffer.from(await response.arrayBuffer());
+          const base64 = buffer.toString('base64');
+          return `data:${contentType};base64,${base64}`;
+        } catch (err) {
+          console.error('Image fetch error:', err.message);
+          return urlOrData; // fallback to original string
+        }
+      }
+      return urlOrData;
+    };
+
+    const imagesData = await Promise.all(images.map((img) => toDataUrl(img)));
 
     const product = new Product({
       ...req.body,
-      images: imagePaths.length > 0 ? imagePaths : req.body.images || [],
+      images: imagesData,
       price: parseFloat(req.body.price),
       stock: parseInt(req.body.stock),
     });
@@ -72,9 +74,9 @@ router.post('/products', upload.array('images', 5), async (req, res) => {
 });
 
 // @route   PUT /api/admin/products/:id
-// @desc    Update product
+// @desc    Update product (images provided as array of URLs)
 // @access  Private/Admin
-router.put('/products/:id', upload.array('images', 5), async (req, res) => {
+router.put('/products/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
 
@@ -82,12 +84,39 @@ router.put('/products/:id', upload.array('images', 5), async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    const imagePaths = req.files
-      ? req.files.map((file) => `/uploads/${file.filename}`)
-      : [];
+    // Accept images as array of URLs or data URLs; convert URLs to data URLs
+    let incomingImages = [];
+    if (Array.isArray(req.body.images)) {
+      incomingImages = req.body.images;
+    } else if (typeof req.body.images === 'string' && req.body.images.length) {
+      try {
+        const parsed = JSON.parse(req.body.images);
+        incomingImages = Array.isArray(parsed) ? parsed : [req.body.images];
+      } catch {
+        incomingImages = [req.body.images];
+      }
+    }
 
-    if (imagePaths.length > 0) {
-      req.body.images = imagePaths;
+    if (incomingImages.length > 0) {
+      const toDataUrl = async (urlOrData) => {
+        if (typeof urlOrData !== 'string') return '';
+        if (urlOrData.startsWith('data:')) return urlOrData;
+        if (/^https?:\/\//i.test(urlOrData)) {
+          try {
+            const response = await fetch(urlOrData);
+            if (!response.ok) throw new Error('Failed to fetch image');
+            const contentType = response.headers.get('content-type') || 'image/jpeg';
+            const buffer = Buffer.from(await response.arrayBuffer());
+            const base64 = buffer.toString('base64');
+            return `data:${contentType};base64,${base64}`;
+          } catch (err) {
+            console.error('Image fetch error:', err.message);
+            return urlOrData; // fallback to original string
+          }
+        }
+        return urlOrData;
+      };
+      req.body.images = await Promise.all(incomingImages.map((img) => toDataUrl(img)));
     }
 
     if (req.body.price) req.body.price = parseFloat(req.body.price);

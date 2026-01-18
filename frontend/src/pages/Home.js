@@ -1,20 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import Slider from 'react-slick';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import api from '../utils/api';
 import { useCart } from '../context/CartContext';
 import { toast } from 'react-toastify';
-import { FiShoppingCart, FiStar } from 'react-icons/fi';
+import {
+  FiShoppingCart,
+  FiStar,
+  FiArrowRight,
+  FiTrendingUp,
+  FiZap,
+  FiAward,
+} from 'react-icons/fi';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Skeleton from '../components/ui/Skeleton';
+import ProductCard from '../components/ui/ProductCard';
+import Countdown from '../components/ui/Countdown';
+import AdvertisementSlider from '../components/advertisements/AdvertisementSlider';
+import AdvertisementBanner from '../components/advertisements/AdvertisementBanner';
 
 const Home = () => {
   const [advertisements, setAdvertisements] = useState([]);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAdvertisements();
     fetchProducts();
+    fetchCategories();
   }, []);
 
   const fetchAdvertisements = async () => {
@@ -29,7 +46,7 @@ const Home = () => {
   const fetchProducts = async () => {
     try {
       const res = await api.get('/products?limit=8');
-      setProducts(res.data.products);
+      setProducts(res.data.products || []);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -37,16 +54,15 @@ const Home = () => {
     }
   };
 
-  const sliderSettings = {
-    dots: true,
-    infinite: true,
-    speed: 500,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    autoplay: true,
-    autoplaySpeed: 3000,
-    pauseOnHover: true,
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get('/products/categories/list');
+      setCategories(res.data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
   };
+
 
   const handleAddToCart = (product) => {
     if (product.stock > 0) {
@@ -57,160 +73,286 @@ const Home = () => {
     }
   };
 
+  const categoryIcons = [
+    FiTrendingUp,
+    FiZap,
+    FiAward,
+    FiShoppingCart,
+    FiTrendingUp,
+    FiZap,
+  ];
+
   return (
-    <div>
-      {/* Hero Slider */}
-      {advertisements.filter((ad) => ad.type === 'slider').length > 0 && (
-        <div className="mb-8">
-          <Slider {...sliderSettings}>
-            {advertisements
-              .filter((ad) => ad.type === 'slider')
-              .map((ad) => (
-                <div key={ad._id}>
-                  <div className="relative h-96">
-                    <img
-                      src={`http://localhost:5000${ad.image}`}
-                      alt={ad.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                      <div className="text-center text-white px-4">
-                        <h2 className="text-4xl font-bold mb-4">{ad.title}</h2>
-                        {ad.description && (
-                          <p className="text-xl">{ad.description}</p>
-                        )}
-                        {ad.link && (
-                          <Link
-                            to={ad.link}
-                            className="mt-4 inline-block bg-primary-600 text-white px-6 py-3 rounded-md hover:bg-primary-700 transition-colors"
-                          >
-                            Shop Now
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-          </Slider>
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center"
+          >
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6"
+            >
+              Discover Amazing
+              <br />
+              <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
+                Products
+              </span>
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.8 }}
+              className="text-xl sm:text-2xl text-primary-100 mb-8 max-w-2xl mx-auto"
+            >
+              Shop the latest trends and find everything you need in one place
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.8 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center"
+            >
+              <Button
+                size="lg"
+                onClick={() => navigate('/products')}
+                className="bg-white text-primary-700 hover:bg-primary-50 shadow-xl"
+              >
+                Shop Now
+                <FiArrowRight className="ml-2" />
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => navigate('/products')}
+                className="border-2 border-white text-white hover:bg-white/10"
+              >
+                Explore Collection
+              </Button>
+            </motion.div>
+          </motion.div>
         </div>
+      </section>
+
+      {/* Hero Slider - Modern Advertisement Slider */}
+      <AdvertisementSlider
+        advertisements={advertisements.filter((ad) => ad.type === 'slider' && ad.isActive)}
+      />
+
+      {/* Categories Section */}
+      {categories.length > 0 && (
+        <section className="py-16 bg-slate-50 dark:bg-slate-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4">
+                Shop by Category
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400 text-lg">
+                Browse our wide range of product categories
+              </p>
+            </motion.div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
+              {categories.slice(0, 6).map((category, index) => {
+                const Icon = categoryIcons[index % categoryIcons.length];
+                return (
+                  <motion.div
+                    key={category}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1, duration: 0.4 }}
+                    whileHover={{ y: -8 }}
+                  >
+                    <Link to={`/products?category=${category}`}>
+                      <Card hover className="text-center p-6 h-full">
+                        <div className="flex flex-col items-center">
+                          <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center mb-4 shadow-lg">
+                            <Icon className="text-2xl text-white" />
+                          </div>
+                          <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+                            {category}
+                          </h3>
+                        </div>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
       )}
 
-      {/* Banners */}
-      {advertisements.filter((ad) => ad.type === 'banner').length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {advertisements
-              .filter((ad) => ad.type === 'banner')
-              .slice(0, 2)
-              .map((ad) => (
-                <Link
-                  key={ad._id}
-                  to={ad.link || '/products'}
-                  className="relative h-64 rounded-lg overflow-hidden group"
-                >
-                  <img
-                    src={`http://localhost:5000${ad.image}`}
-                    alt={ad.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+      {/* Banners - Modern Advertisement Banners */}
+      <AdvertisementBanner
+        advertisements={advertisements
+          .filter((ad) => ad.type === 'banner' && ad.isActive)
+          .slice(0, 6)}
+      />
+
+      {/* Flash Sale Section */}
+      <section className="py-16 bg-gradient-to-br from-red-50 via-pink-50 to-orange-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mb-8"
+          >
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="px-3 py-1 bg-gradient-to-r from-red-500 to-pink-600 text-white text-sm font-bold rounded-full">
+                    FLASH SALE
+                  </span>
+                  <Countdown
+                    targetDate={new Date(Date.now() + 24 * 60 * 60 * 1000)}
                   />
-                  <div className="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-30 transition-all">
-                    <div className="absolute bottom-4 left-4 text-white">
-                      <h3 className="text-2xl font-bold">{ad.title}</h3>
-                      {ad.description && (
-                        <p className="text-sm mt-1">{ad.description}</p>
-                      )}
-                    </div>
-                  </div>
-                </Link>
+                </div>
+                <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-100">
+                  Limited Time Offers
+                </h2>
+                <p className="text-slate-600 dark:text-slate-400 mt-1">
+                  Don't miss out on these amazing deals
+                </p>
+              </div>
+              <Link
+                to="/products?sort=-createdAt"
+                className="flex items-center gap-2 text-primary-600 dark:text-primary-400 font-semibold hover:gap-3 transition-all"
+              >
+                View All Deals
+                <FiArrowRight />
+              </Link>
+            </div>
+          </motion.div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <Card key={i}>
+                  <Skeleton className="h-48 w-full mb-4" variant="rectangular" />
+                  <Skeleton className="h-6 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2 mb-4" />
+                  <Skeleton className="h-10 w-full" />
+                </Card>
               ))}
-          </div>
+            </div>
+          ) : products.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {products.slice(0, 4).map((product, index) => (
+                <ProductCard key={product._id} product={product} index={index} />
+              ))}
+            </div>
+          ) : null}
         </div>
-      )}
+      </section>
 
       {/* Featured Products */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold text-gray-900">Featured Products</h2>
-          <Link
-            to="/products"
-            className="text-primary-600 hover:text-primary-700 font-medium"
+      <section className="py-16 bg-white dark:bg-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="flex justify-between items-center mb-12"
           >
-            View All →
-          </Link>
-        </div>
+            <div>
+              <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+                Featured Products
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400">
+                Handpicked products just for you
+              </p>
+            </div>
+            <Link
+              to="/products"
+              className="hidden sm:flex items-center gap-2 text-primary-600 dark:text-primary-400 font-semibold hover:gap-3 transition-all"
+            >
+              View All
+              <FiArrowRight />
+            </Link>
+          </motion.div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse"
-              >
-                <div className="h-48 bg-gray-200"></div>
-                <div className="p-4">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              </div>
-            ))}
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <Card key={i}>
+                  <Skeleton className="h-48 w-full mb-4" variant="rectangular" />
+                  <Skeleton className="h-6 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2 mb-4" />
+                  <Skeleton className="h-10 w-full" />
+                </Card>
+              ))}
+            </div>
+          ) : products.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {products.map((product, index) => (
+                <ProductCard key={product._id} product={product} index={index} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-slate-600 dark:text-slate-400 text-lg">
+                No products available at the moment
+              </p>
+            </div>
+          )}
+
+          <div className="text-center mt-8 sm:hidden">
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-2 text-primary-600 dark:text-primary-400 font-semibold"
+            >
+              View All Products
+              <FiArrowRight />
+            </Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <div
-                key={product._id}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow"
-              >
-                <Link to={`/products/${product._id}`}>
-                  <div className="relative h-48 bg-gray-200">
-                    <img
-                      src={`http://localhost:5000${product.images[0]}`}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                    {product.stock === 0 && (
-                      <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs">
-                        Out of Stock
-                      </div>
-                    )}
-                  </div>
-                </Link>
-                <div className="p-4">
-                  <Link to={`/products/${product._id}`}>
-                    <h3 className="font-semibold text-lg mb-2 hover:text-primary-600">
-                      {product.name}
-                    </h3>
-                  </Link>
-                  <div className="flex items-center mb-2">
-                    <div className="flex items-center">
-                      <FiStar className="text-yellow-400 fill-current" />
-                      <span className="ml-1 text-sm text-gray-600">
-                        {product.rating.toFixed(1)} ({product.numReviews})
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-primary-600">
-                      ₹{product.price.toLocaleString()}
-                    </span>
-                    <button
-                      onClick={() => handleAddToCart(product)}
-                      disabled={product.stock === 0}
-                      className="bg-primary-600 text-white p-2 rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      <FiShoppingCart />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+        </div>
+      </section>
+
+      {/* Promotional Banner */}
+      <section className="py-16 bg-gradient-to-r from-primary-600 via-primary-700 to-primary-800 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+              Special Offer: Up to 50% Off
+            </h2>
+            <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
+              Don't miss out on our biggest sale of the year. Shop now and save!
+            </p>
+            <Button
+              size="lg"
+              onClick={() => navigate('/products')}
+              className="bg-white text-primary-700 hover:bg-primary-50 shadow-xl"
+            >
+              Shop Now
+              <FiArrowRight className="ml-2" />
+            </Button>
+          </motion.div>
+        </div>
+      </section>
     </div>
   );
 };
 
 export default Home;
-

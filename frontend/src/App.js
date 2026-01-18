@@ -4,6 +4,8 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { DarkModeProvider } from './context/DarkModeContext';
+import { WishlistProvider } from './context/WishlistContext';
 
 // Components
 import Navbar from './components/layout/Navbar';
@@ -35,9 +37,11 @@ import AdminAdvertisements from './pages/admin/Advertisements';
 
 function App() {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <Router>
+    <DarkModeProvider>
+      <AuthProvider>
+        <CartProvider>
+          <WishlistProvider>
+            <Router>
           <div className="flex flex-col min-h-screen">
             <Navbar />
             <main className="flex-grow">
@@ -149,9 +153,11 @@ function App() {
               pauseOnHover
             />
           </div>
-        </Router>
-      </CartProvider>
-    </AuthProvider>
+            </Router>
+          </WishlistProvider>
+        </CartProvider>
+      </AuthProvider>
+    </DarkModeProvider>
   );
 }
 

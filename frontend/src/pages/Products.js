@@ -197,7 +197,11 @@ const Products = () => {
                     <Link to={`/products/${product._id}`}>
                       <div className="relative h-48 bg-gray-200">
                         <img
-                          src={`http://localhost:5000${product.images[0]}`}
+                          src={(() => {
+                            const src = product.images[0] || '';
+                            if (src.startsWith('http') || src.startsWith('data:')) return src;
+                            return `http://localhost:5000${src}`;
+                          })()}
                           alt={product.name}
                           className="w-full h-full object-cover"
                         />

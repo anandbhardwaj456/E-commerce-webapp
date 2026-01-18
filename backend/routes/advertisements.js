@@ -1,44 +1,15 @@
 import express from 'express';
 import Advertisement from '../models/Advertisement.js';
 import { protect, admin } from '../middleware/auth.js';
-import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fetch from 'node-fetch';
 
 const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Multer configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../uploads/'));
-  },
-  filename: (req, file, cb) => {
-    cb(
-      null,
-      `ad-${Date.now()}${path.extname(file.originalname)}`
-    );
-  },
-});
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|gif|webp/;
-    const extname = filetypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-    const mimetype = filetypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'));
-    }
-  },
-});
+// Note: Local file uploads removed. Advertisements now accept image URLs.
 
 // @route   GET /api/advertisements
 // @desc    Get all active advertisements
@@ -69,13 +40,34 @@ router.use(admin);
 // @route   POST /api/advertisements
 // @desc    Create advertisement
 // @access  Private/Admin
-router.post('/', upload.single('image'), async (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : req.body.image;
+    let imageInput = req.body.image;
+    // Convert URL image to data URL and store in DB
+    const toDataUrl = async (urlOrData) => {
+      if (typeof urlOrData !== 'string') return '';
+      if (urlOrData.startsWith('data:')) return urlOrData;
+      if (/^https?:\/\//i.test(urlOrData)) {
+        try {
+          const response = await fetch(urlOrData);
+          if (!response.ok) throw new Error('Failed to fetch image');
+          const contentType = response.headers.get('content-type') || 'image/jpeg';
+          const buffer = Buffer.from(await response.arrayBuffer());
+          const base64 = buffer.toString('base64');
+          return `data:${contentType};base64,${base64}`;
+        } catch (err) {
+          console.error('Ad image fetch error:', err.message);
+          return urlOrData; // fallback to original string
+        }
+      }
+      return urlOrData;
+    };
+
+    const imageData = await toDataUrl(imageInput);
 
     const advertisement = new Advertisement({
       ...req.body,
-      image: imagePath,
+      image: imageData,
     });
 
     const createdAd = await advertisement.save();
@@ -88,7 +80,7 @@ router.post('/', upload.single('image'), async (req, res) => {
 // @route   PUT /api/advertisements/:id
 // @desc    Update advertisement
 // @access  Private/Admin
-router.put('/:id', upload.single('image'), async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const advertisement = await Advertisement.findById(req.params.id);
 
@@ -96,8 +88,26 @@ router.put('/:id', upload.single('image'), async (req, res) => {
       return res.status(404).json({ message: 'Advertisement not found' });
     }
 
-    if (req.file) {
-      req.body.image = `/uploads/${req.file.filename}`;
+    if (typeof req.body.image === 'string' && req.body.image.length) {
+      const toDataUrl = async (urlOrData) => {
+        if (typeof urlOrData !== 'string') return '';
+        if (urlOrData.startsWith('data:')) return urlOrData;
+        if (/^https?:\/\//i.test(urlOrData)) {
+          try {
+            const response = await fetch(urlOrData);
+            if (!response.ok) throw new Error('Failed to fetch image');
+            const contentType = response.headers.get('content-type') || 'image/jpeg';
+            const buffer = Buffer.from(await response.arrayBuffer());
+            const base64 = buffer.toString('base64');
+            return `data:${contentType};base64,${base64}`;
+          } catch (err) {
+            console.error('Ad image fetch error:', err.message);
+            return urlOrData; // fallback to original string
+          }
+        }
+        return urlOrData;
+      };
+      req.body.image = await toDataUrl(req.body.image);
     }
 
     Object.assign(advertisement, req.body);

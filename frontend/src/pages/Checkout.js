@@ -37,7 +37,7 @@ const Checkout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    
     if (!selectedAddress) {
       toast.error('Please select a delivery address');
       return;
@@ -72,9 +72,9 @@ const Checkout = () => {
 
       const res = await api.post('/orders', orderData);
 
-      toast.success('Order placed successfully!');
-      clearCart();
-      navigate(`/orders/${res.data._id}`);
+        toast.success('Order placed successfully!');
+        clearCart();
+        navigate(`/orders/${res.data._id}`);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to place order');
     } finally {
